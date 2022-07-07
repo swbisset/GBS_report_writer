@@ -1,0 +1,107 @@
+\documentclass[hidelinks,12pt]{article}
+\usepackage{textcomp}
+\usepackage{hyperref}
+\usepackage{titling}
+%\usepackage[a4paper, total={6in, 8in}]{geometry} %Sets dimensions of page
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+
+\usepackage[headheight=55pt]{geometry}
+
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhead[L]{
+    \begin{tabular}{lll}
+      \begin{tabular}[t]{c}
+        \includegraphics[scale=0.5]{The_Elshire_Group_Ltd_logo_Final_tight_crop.png}%Change this to logo
+      \end{tabular} &
+      \begin{tabular}[b]{l}
+      	\hspace{90pt}
+      \end{tabular}
+      \begin{tabular}[b]{l}
+        152 Turitea Road  \tabularnewline
+        Palmerston North 4472 \tabularnewline
+        06 357 8341 \tabularnewline
+        \href{mailto:rob@elshiregroup.co.nz}{\color{black}Rob@ElshireGroup.co.nz} \tabularnewline
+      \end{tabular}
+    \end{tabular}   
+  }%
+}
+
+\pagestyle{plain}
+
+\hypersetup{
+	colorlinks=true
+}
+
+\setlength{\parindent}{0pt}
+%\setlength{\parskip}{8pt plus 1pt}
+\setlength{\parskip}{8pt}
+
+\setlength{\droptitle}{-4em}   % This sets relative starting position of title
+\title{\textbf{Library Sequencing Report for LOE\# PROJECTID}\vspace{-3em}} %This sets space after title
+%\author{}
+\predate{\begin{flushleft}} % These two commands force the date to align to the left 
+\postdate{\end{flushleft}}
+\date{DATE \vspace{-2em}} % This moves the date closer to the title
+
+% We want the following information to write this document: 
+% 	Project ID = PROJECTID
+% 	Date = DATE
+% 	Plate numbers = NOPLATES
+% 	Total Read Pairs = TOTALREADS
+% 	Multiplex = MPLEX
+% 	Average Read Pair Count = AVREADCOUNT
+% 	Coefficient of Variation = COEFFVAR
+% 	Blank Check Status = BLANKSTAT
+% 	Samples with <10% average = BELOWAV
+
+\begin{document}
+\maketitle
+This library sequencing report has been generated for you in partial fulfilment of our services to you. 
+We provide key metrics of the library sequencing below.
+
+\subsection*{Sequence Run Metrics}
+
+% This whole table might be replaced by a custom-built block of text
+\begin{table}[h]
+	\centering
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		\textbf{Plates} & \textbf{Total Read} & \textbf{Multiplex} & \textbf{Average} & \textbf{Coefficient} & \textbf{Blank} & \textbf{Samples} \\
+		{} & \textbf{Pairs} & {} & \textbf{Read Pair} & \textbf{of} & \textbf{Check} & \textbf{with} \\
+		{} & {} & {} & \textbf{Count} & \textbf{Variation} & {} & \textbf{$<$10\%} \\
+		{} & {} & {} & {} & {} & {} & \textbf{Average} \\
+		\hline 
+		NOPLATES & TOTALREADS & MPLEX & AVREADCOUNT & COEFFVAR\% & BLANKSTAT & BELOWAV \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsection*{Demultiplexing} 
+
+We use Kevin Murray's axe-demux to perform the demultiplexing based on combinatorial barcoding. 
+When using this software the sample names in the key file must be unique. 
+If you have duplicated samples add a prefix or suffix to those names so that there are not repeated names. 
+This software is available here: \newline \href{https://github.com/kdmurray91/axe}{\color{blue}\underline{https://github.com/kdmurray91/axe}}
+
+\subsection*{Bioinformatics Notes}
+
+We use combinatorial bar coding to generate our libraries as noted above. 
+When you process the reads for down stream SNP calling, any second bar code bases present due to read through into second adapter must be removed. 
+If they are not, spurious SNPs will be present in your final data.
+
+\subsection*{Comments}
+
+This GBS library passed our QC metrics. 
+There were BELOWAV samples that were less than 10\% of the mean. 
+We will include the key file we used to demultiplex. 
+You can generate the appropriate key file from your sample sheet and the information contained in the included key file.
+
+
+We will send you an email with a user name and login as well as instructions on how to download your data.
+
+\subsection*{Data Retention}
+
+Please refer to the Sample and Data Retention Policy document that you received with the letter of engagement for details about sample and library retention at our lab.
+\end{document}
