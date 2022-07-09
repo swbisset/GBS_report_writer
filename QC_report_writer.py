@@ -69,8 +69,6 @@ def make_table(sheets, totalreads, mplex, avreadcount, coeffvar, blankstat, belo
 help_str = "Minimum information needed in Config file: \nPROJECTID \nDATE \n MULTIPLEX \nBLANKS"
 
 parser = argparse.ArgumentParser(description=help_str)
-# parser.add_argument('Sample_file', help = "The sample .xlsx file provided by the client")
-# parser.add_argument('Summary_file', help = "The summary .ods (or equivalent) file generated following sequencing")
 parser.add_argument('Config_file', help = "The config file with all additional information")
 parser.add_argument('-v', '--Verbose', help = "Display additional comments for debugging", action='store_true')
 
@@ -82,11 +80,9 @@ except SystemExit:
 
 args = parser.parse_args()
 
-# sample_file = args.Sample_file      # This provides us with sample name if BELOWAV fails, and helps with BLANKSTAT
-# summary_file = args.Summary_file    # This provides us with TOTALREADS, AVREADCOUNT, COEFFVAR, BLANKSTAT and BELOWAV
 config_file = args.Config_file      # This provides us with PROJECTID, DATE, MPLEX, NOPLATES (maybe), BLANKS
-sample_file = ""
-summary_file = ""
+sample_file = ""                     # This provides us with sample name if BELOWAV fails, and helps with BLANKSTAT
+summary_file = ""                   # This provides us with TOTALREADS, AVREADCOUNT, COEFFVAR, BLANKSTAT and BELOWAV
 
 # Set commenting on if verbose has been selected
 comment = False
@@ -126,7 +122,15 @@ for x in range(0, len(config_split)):
 if comment:
     print("Project ID:\t%s\nDate:\t%s\nMultiplex level:\t%s\nNumber of blanks:\t%s" % (PROJECTID, DATE, MPLEX, BLANKS))
 
-# Next we need to check how many sample pages the provided 'Summary_file' has
+# Need a quick check to make sure that 'sample_file' and 'summary_file' have been provided
+if len(sample_file) < 1:
+    print("Sample file has not been provided")
+    sys.exit()
+elif len(summary_file) < 1:
+    print("Summary file has not been provided")
+    sys.exit()
+
+# Next we need to check how many sample pages the provided 'sample_file' has
 pages = count_pages(sample_file)
 if pages < 1:
     print("Cannot find sheet labelled 'Sample Sheet 1' in %s. Did you specify the correct file?" % sample_file)
@@ -143,7 +147,6 @@ if comment:
 
 # Read in AVREADCOUNT, COEFFVAR, TENPERCENT
 summary_df2 = pd.read_excel(summary_file, usecols=[5, 6, 7, 8])
-# pos1 = np.where(summary_df2['Unnamed: 5'] == 'Average')[0]
 AVREADCOUNT = summary_df2.loc[np.where(summary_df2['Unnamed: 5'] == 'Average')[0][0], 'Unnamed: 6']
 COEFFVAR = (summary_df2.loc[np.where(summary_df2['Unnamed: 5'] == 'CV')[0][0], 'Unnamed: 6']) * 100
 TENPERCENT = summary_df2.loc[np.where(summary_df2['Unnamed: 7'] == '10% Average')[0][0], 'Unnamed: 8']
@@ -185,7 +188,6 @@ for p in range(1, (pages+1)):
     # counts
     for x in range(0, int(MPLEX)):
         if int(summary_df.loc[x, 'Count']) < TENPERCENT:
-            # print("Sample %s has less than 10 percent the average number of reads" % (summary_df.loc[x, 'Sample']))
             BELOWAV += 1
             BELOWAV_list.append(sample_df.loc[np.where(sample_df['Position'] == str(summary_df.loc[x, 'Sample']))[0][0],
                                           'Sample Name'])
@@ -194,7 +196,6 @@ for p in range(1, (pages+1)):
 
 # TODO: This file will probably be changed, with TOTALREADS, MPLEX, AVREADCOUND, COEFFVAR, BLANKSTAT and BELOWAV being
 # included in the table
-#print(make_table(pages, TOTALREAD, MPLEX, AVREADCOUNT, COEFFVAR, BLANKSTAT, BELOWAV))
 table_file = "%s_table.txt" % PROJECTID
 with open(table_file, 'w') as w:
     w.write(make_table(pages, TOTALREAD, MPLEX, AVREADCOUNT, COEFFVAR, BLANKSTAT, BELOWAV))
@@ -207,7 +208,6 @@ with open(out_file, 'w') as w:
     w.write("%s : %s\n%s : %s\n%s : %s million\n%s : %s\n%s : %s million\n%s : %s\n%s : %s\n%s : %s" % ('PROJECTID',
                                     PROJECTID, 'DATE', DATE, 'TOTALREADS', TOTALREAD, 'MPLEX', MPLEX, 'AVREADCOUNT',
                                     AVREADCOUNT, 'COEFFVAR', COEFFVAR, 'BLANKSTAT', BLANKSTAT, 'BELOWAV', BELOWAV))
-    # w.write("%s : %s\n%s : %s" % ('PROJECTID', PROJECTID, 'DATE', DATE))
 
 # TODO: Set tex_writer.py to be called from within this file.
 output_tex = "%s_QC_report.tex" % PROJECTID
