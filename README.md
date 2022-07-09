@@ -11,8 +11,6 @@ usage: QC_report_writer.py [-h] [-v] Sample_file Summary_file Config_file
 Minimum information needed in Config file: PROJECTID DATE MULTIPLEX BLANKS
 
 positional arguments:`
-  Sample_file    The sample .xlsx file provided by the client`
-  Summary_file   The summary .ods (or equivalent) file generated following sequencing`
   Config_file    The config file with all additional information`
 
 options:
@@ -21,15 +19,13 @@ options:
   ```
   
 ### Required files
-- **Sample_file**:  
-  A .xlsx or .ods file containing the client-supplied information. Multiple sheets labelled 'Sample Sheet n' can be included. 
-- **Summary_file**: 
-  The generated .ods file containing the count numbers in each sample, as well as summarised totals reads, average reacts, coefficient of variance and 10% of total reads. 
 - **Config_file**: 
   The Config file containing all additional required information. See below for required information in the Config file. 
 
 ### Config file 
 The config file needs to contain the following information with the corresponding labels, separated by a colon. 
+- **SAMPLEFILE**: The .xlsx file containing the sample information provided by the client. 
+- **SUMMARYFILE**: The summary counts file, in .xlsx or .ods format. 
 - **PROJECTID**: The ID of the project which will be included in the report. This will also be used in the resulting file names. 
 - **DATE**: The date of the project to be included in the report. 
 - **MULTIPLEX**: The plexicity level of the analysis. 
@@ -37,6 +33,8 @@ The config file needs to contain the following information with the correspondin
 
 Example Config file: 
 ```
+SAMPLEFILE: sample.xlsx
+SUMMARYFILE: summary.ods
 PROJECTID: LOExxxx 
 DATE: 10-02-2022 
 MULTIPLEX: 94 
