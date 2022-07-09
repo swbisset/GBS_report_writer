@@ -69,8 +69,8 @@ def make_table(sheets, totalreads, mplex, avreadcount, coeffvar, blankstat, belo
 help_str = "Minimum information needed in Config file: \nPROJECTID \nDATE \n MULTIPLEX \nBLANKS"
 
 parser = argparse.ArgumentParser(description=help_str)
-parser.add_argument('Sample_file', help = "The sample .xlsx file provided by the client")
-parser.add_argument('Summary_file', help = "The summary .ods (or equivalent) file generated following sequencing")
+# parser.add_argument('Sample_file', help = "The sample .xlsx file provided by the client")
+# parser.add_argument('Summary_file', help = "The summary .ods (or equivalent) file generated following sequencing")
 parser.add_argument('Config_file', help = "The config file with all additional information")
 parser.add_argument('-v', '--Verbose', help = "Display additional comments for debugging", action='store_true')
 
@@ -82,9 +82,11 @@ except SystemExit:
 
 args = parser.parse_args()
 
-sample_file = args.Sample_file      # This provides us with sample name if BELOWAV fails, and helps with BLANKSTAT
-summary_file = args.Summary_file    # This provides us with TOTALREADS, AVREADCOUNT, COEFFVAR, BLANKSTAT and BELOWAV
+# sample_file = args.Sample_file      # This provides us with sample name if BELOWAV fails, and helps with BLANKSTAT
+# summary_file = args.Summary_file    # This provides us with TOTALREADS, AVREADCOUNT, COEFFVAR, BLANKSTAT and BELOWAV
 config_file = args.Config_file      # This provides us with PROJECTID, DATE, MPLEX, NOPLATES (maybe), BLANKS
+sample_file = ""
+summary_file = ""
 
 # Set commenting on if verbose has been selected
 comment = False
@@ -95,7 +97,36 @@ TOTALREAD, AVREADCOUNT, TENPERCENT, BLANKS, BELOWAV = 0, 0, 0, 0, 0
 PROJECTID, DATE, MPLEX, BLANKSTAT = "", "", "", "PASS"
 BELOWAV_list = []
 
-# First, we need to check how many sample pages the provided 'Summary_file' has
+# First we read in the Config file
+config = read_text(config_file, True) # Telling this 'True' is just telling the function to ignore comments
+config_split = config.split('\n')
+for x in range(0, len(config_split)):
+    if "SAMPLEFILE" in config_split[x]:
+        sample_file = config_split[x].split(": ")[1]
+        try:
+            open(sample_file)
+        except IOError:
+            print("Invalid sample file provided")
+            sys.exit()
+    if "SUMMARYFILE" in config_split[x]:
+        summary_file = config_split[x].split(": ")[1]
+        try:
+            open(summary_file)
+        except IOError:
+            print("Invalid summary file provided")
+            sys.exit()
+    if "PROJECTID" in config_split[x]:
+        PROJECTID = config_split[x].split(": ")[1]
+    if "DATE" in config_split[x]:
+        DATE = config_split[x].split(": ")[1]
+    if "MULTIPLEX" in config_split[x]:
+        MPLEX = config_split[x].split(": ")[1]
+    if "BLANKS" in config_split[x]:
+        BLANKS = config_split[x].split(": ")[1]
+if comment:
+    print("Project ID:\t%s\nDate:\t%s\nMultiplex level:\t%s\nNumber of blanks:\t%s" % (PROJECTID, DATE, MPLEX, BLANKS))
+
+# Next we need to check how many sample pages the provided 'Summary_file' has
 pages = count_pages(sample_file)
 if pages < 1:
     print("Cannot find sheet labelled 'Sample Sheet 1' in %s. Did you specify the correct file?" % sample_file)
@@ -109,21 +140,6 @@ position = np.where(summary_df['Sample'] == 'total')[0]
 TOTALREAD = summary_df.loc[position[0], 'Count']
 if comment:
     print('Total number of reads: %s million' % (str(TOTALREAD)))
-
-# Read in the Config file
-config = read_text(config_file, True) # Telling this 'True' is just telling the function to ignore comments
-config_split = config.split('\n')
-for x in range(0, len(config_split)):
-    if "PROJECTID" in config_split[x]:
-        PROJECTID = config_split[x].split(": ")[1]
-    if "DATE" in config_split[x]:
-        DATE = config_split[x].split(": ")[1]
-    if "MULTIPLEX" in config_split[x]:
-        MPLEX = config_split[x].split(": ")[1]
-    if "BLANKS" in config_split[x]:
-        BLANKS = config_split[x].split(": ")[1]
-if comment:
-    print("Project ID:\t%s\nDate:\t%s\nMultiplex level:\t%s\nNumber of blanks:\t%s" % (PROJECTID, DATE, MPLEX, BLANKS))
 
 # Read in AVREADCOUNT, COEFFVAR, TENPERCENT
 summary_df2 = pd.read_excel(summary_file, usecols=[5, 6, 7, 8])
