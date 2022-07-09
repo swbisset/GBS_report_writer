@@ -27,7 +27,7 @@ def count_pages(xlsx_file):
     return count
 
 
-def add_position(sheet_df):
+def add_position(sheet_df, start=0):
     sheet_df['Position'] = sheet_df['Well']
     i = 0
     for x in sheet_df.index:
@@ -35,7 +35,7 @@ def add_position(sheet_df):
             plate = 2
         else:
             plate = 1
-        pos = '%s%s' % (plate, sheet_df.loc[x, 'Position'])
+        pos = '%s%s' % (plate+start, sheet_df.loc[x, 'Position'])
         sheet_df.loc[x, 'Position'] = pos
         i += 1
     return sheet_df
@@ -53,6 +53,18 @@ def read_text(text_file, has_comments=False):
             for line in r:
                 line_str += line
     return line_str
+
+
+def make_table(sheets, totalreads, mplex, avreadcount, coeffvar, blankstat, belowav):
+    table_str = "\t\t\\hline\n"
+    for i in range(0, sheets):
+        if int(mplex) < 188:
+            plates = i+1
+        else:
+            plates = "%s&%s" % (str(sheets+i), str(sheets+i+1))
+        table_str += "\t\t%s & %s & %s & %s & %s & %s & %s \\\\\n\t\t\\hline\n" % (plates, totalreads, mplex, avreadcount,
+                                                                               coeffvar, blankstat, belowav)
+    return table_str
 
 help_str = "Minimum information needed in Config file: \nPROJECTID \nDATE \n MULTIPLEX \nBLANKS"
 
@@ -90,14 +102,6 @@ if pages < 1:
     sys.exit()
 else:
     print('%s sheets read in from %s' % (str(pages), sample_file))
-# TODO: Come back to this and implement a way of dealing with having 2 or 3 xlsx sheets.
-
-# Read in the sample .xlsx file. Only selecting 'Well' and 'Sample Name' columns.
-sample_df = pd.read_excel(sample_file, skiprows=1, sheet_name='Sample Sheet 1', usecols=['Well', 'Sample Name'],
-                          dtype={'Well': 'object', 'Sample Name': 'object'})
-
-# Add an additional column, named 'Position' which contains the plate number & well info.
-sample_df = add_position(sample_df)
 
 # Read in the sample .ods file. Only selecting 'Sample' and 'Count' columns. Can get TOTALREAD immediately.
 summary_df = pd.read_excel(summary_file, usecols=['Sample', 'Count'], dtype={'Sample': object, 'Count': 'float64'})
@@ -131,35 +135,55 @@ if comment:
     print('Average number of reads:\t%s million \nCoefficient of variance:\t%s \n10 percent of reads:\t%s' %
           (str(AVREADCOUNT), str(COEFFVAR), str(TENPERCENT)))
 
-# Now we implement the blank check, and return which samples failed the 10% average mark
-# First step is to get the ID of the blanks from the 'Sample file', and compare the counts in the 'Summary File'
-blank_num = int(BLANKS)
-blank_position = []
-for x in range(0, blank_num):   # First we read through the xlsx file and get the sample positions of all blanks
-    blank_str = "BLANK%s" % str(x+1)
-    position = np.where(sample_df['Sample Name'] == blank_str)[0]
-    blank_position.append(sample_df.loc[position[0], 'Position'])
-for x in range(0, len(blank_position)):    # Next, check the blanks and make sure all are < the 10 percent cut-off
-    position = np.where(summary_df['Sample'] == str(blank_position[x]))[0]
-    if summary_df.loc[position[0], 'Count'] > TENPERCENT:
-        print("Blank at position %s exceeded threshold" % str(blank_position[x]))
-        BLANKSTAT = "FAIL"
-
-# Now, we read through all the samples (from 0 < [multiplex level]) and check none have less than 10% average
-# counts
-for x in range(0, int(MPLEX)):
-    if int(summary_df.loc[x, 'Count']) < TENPERCENT:
-        # print("Sample %s has less than 10 percent the average number of reads" % (summary_df.loc[x, 'Sample']))
-        BELOWAV += 1
-        BELOWAV_list.append(sample_df.loc[np.where(sample_df['Position'] == str(summary_df.loc[x, 'Sample']))[0][0],
-                                          'Sample Name'])
-if comment:
-    print("Number of samples to fail sequencing threshold: %s" % str(len(BELOWAV_list)))
-
-# Now we tidy up the numbers before writing them out to the file
+# Now we tidy up the numbers
 TOTALREAD = str(round((TOTALREAD / 1000000), 0)).split('.')[0]
 AVREADCOUNT = str(round((AVREADCOUNT / 1000000), 1))
 COEFFVAR = str(round(COEFFVAR, 0)).split('.')[0]
+
+# TODO: Finish optimising this to handle multiple sheets
+# Reading in the sample .xlsx file is looped to account for multiple pages.
+for p in range(1, (pages+1)):
+    # Read in the sample .xlsx file. Only selecting 'Well' and 'Sample Name' columns.
+    sample_sheet = "Sample Sheet %s" % p
+    sample_df = pd.read_excel(sample_file, skiprows=1, sheet_name=sample_sheet, usecols=['Well', 'Sample Name'],
+                          dtype={'Well': 'object', 'Sample Name': 'object'})
+
+    # Add an additional column, named 'Position' which contains the plate number & well info.
+    sample_df = add_position(sample_df, start=(p-1)*2)
+
+    # Now we implement the blank check, and return which samples failed the 10% average mark
+    # First step is to get the ID of the blanks from the 'Sample file', and compare the counts in the 'Summary File'
+    blank_num = int(BLANKS)
+    blank_position = []
+    for x in range(0, blank_num):   # First we read through the xlsx file and get the sample positions of all blanks
+        blank_str = "BLANK%s" % str(x+1)
+        position = np.where(sample_df['Sample Name'] == blank_str)[0]
+        blank_position.append(sample_df.loc[position[0], 'Position'])
+    for x in range(0, len(blank_position)):    # Next, check the blanks and make sure all are < the 10 percent cut-off
+        position = np.where(summary_df['Sample'] == str(blank_position[x]))[0]
+        if summary_df.loc[position[0], 'Count'] > TENPERCENT:
+            print("Blank at position %s exceeded threshold" % str(blank_position[x]))
+            BLANKSTAT = "FAIL"
+
+    # Now, we read through all the samples (from 0 < [multiplex level]) and check none have less than 10% average
+    # counts
+    for x in range(0, int(MPLEX)):
+        if int(summary_df.loc[x, 'Count']) < TENPERCENT:
+            # print("Sample %s has less than 10 percent the average number of reads" % (summary_df.loc[x, 'Sample']))
+            BELOWAV += 1
+            BELOWAV_list.append(sample_df.loc[np.where(sample_df['Position'] == str(summary_df.loc[x, 'Sample']))[0][0],
+                                          'Sample Name'])
+    if comment:
+        print("Number of samples to fail sequencing threshold: %s" % str(len(BELOWAV_list)))
+
+# TODO: This file will probably be changed, with TOTALREADS, MPLEX, AVREADCOUND, COEFFVAR, BLANKSTAT and BELOWAV being
+# included in the table
+#print(make_table(pages, TOTALREAD, MPLEX, AVREADCOUNT, COEFFVAR, BLANKSTAT, BELOWAV))
+table_file = "%s_table.txt" % PROJECTID
+with open(table_file, 'w') as w:
+    w.write(make_table(pages, TOTALREAD, MPLEX, AVREADCOUNT, COEFFVAR, BLANKSTAT, BELOWAV))
+if comment:
+    print("Table written to %s" % table_file)
 
 # Write information to temporary file
 out_file = "%s_info.txt" % PROJECTID
@@ -167,7 +191,9 @@ with open(out_file, 'w') as w:
     w.write("%s : %s\n%s : %s\n%s : %s million\n%s : %s\n%s : %s million\n%s : %s\n%s : %s\n%s : %s" % ('PROJECTID',
                                     PROJECTID, 'DATE', DATE, 'TOTALREADS', TOTALREAD, 'MPLEX', MPLEX, 'AVREADCOUNT',
                                     AVREADCOUNT, 'COEFFVAR', COEFFVAR, 'BLANKSTAT', BLANKSTAT, 'BELOWAV', BELOWAV))
+    # w.write("%s : %s\n%s : %s" % ('PROJECTID', PROJECTID, 'DATE', DATE))
 
 # TODO: Set tex_writer.py to be called from within this file.
 output_tex = "%s_QC_report.tex" % PROJECTID
-os.system("python3 tex_writer.py %s %s %s" % (out_file, 'QC_report_template.tex', output_tex))
+print("python3 tex_writer.py %s %s %s -t %s" % (out_file, 'QC_report_template2.tex', output_tex, table_file))
+os.system("python3 tex_writer.py %s %s %s -t %s" % (out_file, 'QC_report_template2.tex', output_tex, table_file))
