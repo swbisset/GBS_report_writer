@@ -4,6 +4,9 @@ A collection of scripts for generating reports in LaTeX format for the different
 ## Required files
 All report writer scripts require a Config file and a requesite template.tex file, in addition to the specific additional files. See info below for what each specific report writer needs. 
 
+### Dependencies
+Python dependencies: pandas, numpy, openpyxl, odfpy. 
+
 ## QC_report_writer.py
 ```
 usage: QC_report_writer.py [-h] [-v] Sample_file Summary_file Config_file
