@@ -61,7 +61,7 @@ def make_table(sheets, totalreads, mplex, avreadcount, coeffvar, blankstat, belo
         if int(mplex) < 188:
             plates = i+1
         else:
-            plates = "%s&%s" % (str(sheets+i), str(sheets+i+1))
+            plates = "%s \& %s" % (str(sheets+i), str(sheets+i+1))
         table_str += "\t\t%s & %s & %s & %s & %s & %s & %s \\\\\n\t\t\\hline\n" % (plates, totalreads, mplex, avreadcount,
                                                                                coeffvar, blankstat, belowav)
     return table_str
@@ -70,6 +70,8 @@ help_str = "Minimum information needed in Config file: \nPROJECTID \nDATE \n MUL
 
 parser = argparse.ArgumentParser(description=help_str)
 parser.add_argument('Config_file', help = "The config file with all additional information")
+parser.add_argument('-n', '--No_Tex', help = "Select this if you do not want to produce a tex file", action='store_true')
+parser.add_argument('-d', '--Directory', help = "The directory where the files being read are located")
 parser.add_argument('-v', '--Verbose', help = "Display additional comments for debugging", action='store_true')
 
 try:
@@ -83,6 +85,9 @@ args = parser.parse_args()
 config_file = args.Config_file      # This provides us with PROJECTID, DATE, MPLEX, NOPLATES (maybe), BLANKS
 sample_file = ""                     # This provides us with sample name if BELOWAV fails, and helps with BLANKSTAT
 summary_file = ""                   # This provides us with TOTALREADS, AVREADCOUNT, COEFFVAR, BLANKSTAT and BELOWAV
+file_location = ""
+if args.Directory:
+    file_location = "%s/" % str(args.Directory)
 
 # Set commenting on if verbose has been selected
 comment = False
@@ -97,15 +102,17 @@ BELOWAV_list = []
 config = read_text(config_file, True) # Telling this 'True' is just telling the function to ignore comments
 config_split = config.split('\n')
 for x in range(0, len(config_split)):
+    # if "FOLDER" in config_split[x]:
+    #     file_location = config_split[x].split(": ")[1]
     if "SAMPLEFILE" in config_split[x]:
-        sample_file = config_split[x].split(": ")[1]
+        sample_file = "%s%s" % (str(file_location), str(config_split[x].split(": ")[1]))
         try:
             open(sample_file)
         except IOError:
             print("Invalid sample file provided")
             sys.exit()
     if "SUMMARYFILE" in config_split[x]:
-        summary_file = config_split[x].split(": ")[1]
+        summary_file = "%s%s" % (str(file_location), config_split[x].split(": ")[1])
         try:
             open(summary_file)
         except IOError:
@@ -196,20 +203,24 @@ for p in range(1, (pages+1)):
 
 # TODO: This file will probably be changed, with TOTALREADS, MPLEX, AVREADCOUND, COEFFVAR, BLANKSTAT and BELOWAV being
 # included in the table
-table_file = "%s_table.txt" % PROJECTID
+# Note: We also have to add the directory of the logo here in addition to othee figures, to make handling docker easier
+figure_logo = "%sThe_Elshire_Group_Ltd_logo_Final_tight_crop.png" % file_location
+table_file = "%s%s_table.txt" % (file_location, PROJECTID)
 with open(table_file, 'w') as w:
     w.write(make_table(pages, TOTALREAD, MPLEX, AVREADCOUNT, COEFFVAR, BLANKSTAT, BELOWAV))
 if comment:
     print("Table written to %s" % table_file)
 
 # Write information to temporary file
-out_file = "%s_info.txt" % PROJECTID
+out_file = "%s%s_info.txt" % (file_location, PROJECTID)
 with open(out_file, 'w') as w:
-    w.write("%s : %s\n%s : %s\n%s : %s million\n%s : %s\n%s : %s million\n%s : %s\n%s : %s\n%s : %s" % ('PROJECTID',
-                                    PROJECTID, 'DATE', DATE, 'TOTALREADS', TOTALREAD, 'MPLEX', MPLEX, 'AVREADCOUNT',
-                                    AVREADCOUNT, 'COEFFVAR', COEFFVAR, 'BLANKSTAT', BLANKSTAT, 'BELOWAV', BELOWAV))
+    w.write("%s : %s\n%s : %s\n%s : %s million\n%s : %s\n%s : %s million\n%s : %s\n%s : %s\n%s : %s\n%s : %s" %
+                                    ('PROJECTID',PROJECTID, 'DATE', DATE, 'TOTALREADS', TOTALREAD, 'MPLEX', MPLEX,
+                                     'AVREADCOUNT',AVREADCOUNT, 'COEFFVAR', COEFFVAR, 'BLANKSTAT', BLANKSTAT, 'BELOWAV',
+                                     BELOWAV, 'LOGO_FIGURE', figure_logo))
 
-# TODO: Set tex_writer.py to be called from within this file.
-output_tex = "%s_QC_report.tex" % PROJECTID
-print("python3 tex_writer.py %s %s %s -t %s" % (out_file, 'QC_report_template2.tex', output_tex, table_file))
-os.system("python3 tex_writer.py %s %s %s -t %s" % (out_file, 'QC_report_template2.tex', output_tex, table_file))
+tex_template = "%sQC_report_template.tex" % file_location
+if not args.No_Tex:
+    output_tex = "%s%s_QC_report.tex" % (file_location, PROJECTID)
+    print("python3 tex_writer.py %s %s %s -t %s" % (out_file, 'QC_report_template.tex', output_tex, table_file))
+    os.system("python3 %stex_writer.py %s %s %s -t %s" % (file_location, out_file, tex_template, output_tex, table_file))

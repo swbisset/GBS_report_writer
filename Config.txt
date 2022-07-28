@@ -1,0 +1,14 @@
+# Lines beginning with # will be ignored. 
+# It is safe to include all of the project data in a single Config file. 
+# Information needed for all reports:
+# FOLDER: /mnt/GBS-reports/
+PROJECTID: LOE40452A
+DATE: 10-06-2022
+# Information needed for QC reports
+# Note: Blanks refers to the number of blanks provided per sample SHEET
+SAMPLEFILE: excel_file.xlsx
+SUMMARYFILE: ods_file.ods
+MULTIPLEX: 188
+BLANKS: 2
+# Optional information for QC reports
+# TEXTEMPLATE: QC_report_template.tex
